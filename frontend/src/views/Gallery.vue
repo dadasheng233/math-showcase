@@ -2,6 +2,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPapers } from '@/api/paper'
+import { getApiUrl } from '@/utils'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -114,7 +115,7 @@ function animateCards() {
           @click="goDetail(paper.id)"
         >
           <div class="card-cover">
-            <img v-if="paper.coverImage" :src="paper.coverImage" :alt="paper.title" />
+            <img v-if="paper.coverImage" :src="getApiUrl(paper.coverImage)" :alt="paper.title" />
             <div v-else class="card-cover-placeholder">
               <el-icon :size="48"><Document /></el-icon>
             </div>

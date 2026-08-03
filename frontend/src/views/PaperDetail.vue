@@ -2,11 +2,13 @@
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPaperDetail } from '@/api/paper'
+import { getApiUrl } from '@/utils'
 import gsap from 'gsap'
 
 const route = useRoute()
 const router = useRouter()
 const paper = ref<any>(null)
+const attachments = ref<any[]>([])
 const loading = ref(false)
 const showPdf = ref(false)
 
@@ -17,11 +19,24 @@ const pdfUrl = computed(() => {
   return `${apiBase}/files/uploads/${paper.value.filePath}`
 })
 
+function formatSize(bytes: number): string {
+  if (!bytes) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let i = 0
+  let size = bytes
+  while (size >= 1024 && i < units.length - 1) {
+    size /= 1024
+    i++
+  }
+  return size.toFixed(1) + ' ' + units[i]
+}
+
 async function fetchDetail() {
   loading.value = true
   try {
     const res: any = await getPaperDetail(Number(route.params.id))
-    paper.value = res.data
+    paper.value = res.data.paper
+    attachments.value = res.data.attachments || []
   } finally {
     loading.value = false
   }
@@ -104,7 +119,23 @@ onMounted(async () => {
 
       <div class="detail-section card" v-if="paper.coverImage">
         <h3 class="section-title">封面预览</h3>
-        <img :src="paper.coverImage" class="cover-preview" style="max-width: 100%; border-radius: 12px;" />
+        <img :src="getApiUrl(paper.coverImage)" class="cover-preview" style="max-width: 100%; border-radius: 12px;" />
+      </div>
+
+      <div class="detail-section card" v-if="attachments.length > 0">
+        <h3 class="section-title">附件 ({{ attachments.length }})</h3>
+        <div class="attachment-list">
+          <div v-for="att in attachments" :key="att.id" class="attachment-item">
+            <div class="attachment-info">
+              <el-tag :type="att.fileType === 'python' ? 'success' : att.fileType === 'java' ? 'warning' : att.fileType === 'c' ? '' : att.fileType === 'archive' ? 'danger' : 'info'" size="small">{{ att.fileType || 'file' }}</el-tag>
+              <span class="attachment-name">{{ att.fileName }}</span>
+              <span class="attachment-size">{{ formatSize(att.fileSize) }}</span>
+            </div>
+            <el-button size="small" @click="() => window.open(`${apiBase}/files/uploads/${att.filePath}`, '_blank')">
+              <el-icon><Download /></el-icon> 下载
+            </el-button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -228,5 +259,36 @@ onMounted(async () => {
 .pdf-frame {
   width: 100%;
   height: 700px;
+}
+
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attachment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 10px;
+}
+
+.attachment-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.attachment-name {
+  color: #ccd6f6;
+  font-size: 14px;
+}
+
+.attachment-size {
+  color: #5a5a7e;
+  font-size: 12px;
 }
 </style>

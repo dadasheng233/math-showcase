@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { createPaper, uploadPaperFile, uploadPaperCover } from '@/api/paper'
+import { createPaper, uploadPaperFile, uploadPaperCover, uploadPaperAttachments } from '@/api/paper'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -20,6 +20,7 @@ const form = reactive({
 const coverFileList = ref<any[]>([])
 const uploadRef = ref()
 const fileList = ref<any[]>([])
+const attachmentFileList = ref<any[]>([])
 
 async function handleCreate() {
   if (!form.title) {
@@ -69,6 +70,16 @@ async function handleUpload() {
     const formData = new FormData()
     formData.append('file', file)
     await uploadPaperFile(createdId.value!, formData)
+
+    // 上传附件
+    if (attachmentFileList.value.length > 0) {
+      const attFd = new FormData()
+      attachmentFileList.value.forEach((f: any) => {
+        if (f.raw) attFd.append('files', f.raw)
+      })
+      await uploadPaperAttachments(createdId.value!, attFd)
+    }
+
     ElMessage.success('论文上传成功')
     router.push(`/papers/${createdId.value}`)
   } catch (err: any) {
@@ -154,6 +165,23 @@ function handleSkip() {
           <p class="upload-hint">支持 PDF、Word 格式</p>
         </div>
       </el-upload>
+
+      <div style="margin-top: 24px;">
+        <h4 style="color: #8892b0; margin-bottom: 12px;">附件（选填）</h4>
+        <el-upload
+          v-model:file-list="attachmentFileList"
+          :auto-upload="false"
+          multiple
+          drag
+          accept=".py,.java,.c,.cpp,.h,.js,.ts,.txt,.zip,.rar,.7z,.md,.json,.xml,.yml,.yaml,.xlsx,.xls,.csv,.png,.jpg,.jpeg"
+        >
+          <el-icon :size="32" class="upload-icon"><FolderOpened /></el-icon>
+          <div class="upload-text">
+            <p>拖拽代码、数据文件等到此处，或<em>点击选择</em></p>
+            <p class="upload-hint">支持 Python、Java、C、JS、TS、TXT、ZIP、Excel 等</p>
+          </div>
+        </el-upload>
+      </div>
 
       <div class="upload-actions">
         <el-button @click="handleSkip">跳过，稍后上传</el-button>

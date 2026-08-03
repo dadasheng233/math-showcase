@@ -8,6 +8,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/papers")
 public class PaperController {
@@ -53,6 +56,24 @@ public class PaperController {
         }
     }
 
+    @PostMapping("/{id}/attachments")
+    public R<?> uploadAttachments(@PathVariable Long id, @RequestParam("files") MultipartFile[] files) {
+        try {
+            return R.ok(paperService.uploadAttachments(id, files));
+        } catch (RuntimeException e) {
+            return R.error(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/attachments")
+    public R<?> getAttachments(@PathVariable Long id) {
+        try {
+            return R.ok(paperService.getAttachments(id));
+        } catch (RuntimeException e) {
+            return R.error(e.getMessage());
+        }
+    }
+
     @GetMapping
     public R<?> list(@RequestParam(defaultValue = "1") int page,
                      @RequestParam(defaultValue = "12") int size,
@@ -63,7 +84,11 @@ public class PaperController {
     @GetMapping("/{id}")
     public R<?> detail(@PathVariable Long id) {
         try {
-            return R.ok(paperService.getPaperDetail(id));
+            Paper paper = paperService.getPaperDetail(id);
+            Map<String, Object> data = new HashMap<>();
+            data.put("paper", paper);
+            data.put("attachments", paperService.getAttachments(id));
+            return R.ok(data);
         } catch (RuntimeException e) {
             return R.error(e.getMessage());
         }

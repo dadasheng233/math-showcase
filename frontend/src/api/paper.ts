@@ -12,6 +12,10 @@ export function uploadPaperCover(id: number, formData: FormData) {
   return request.post(`/papers/${id}/cover`, formData)
 }
 
+export function uploadPaperAttachments(id: number, formData: FormData) {
+  return request.post(`/papers/${id}/attachments`, formData)
+}
+
 export function getPapers(params: { page: number; size: number; keyword?: string }) {
   return request.get('/papers', { params })
 }
