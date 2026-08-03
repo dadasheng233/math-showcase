@@ -1,0 +1,12 @@
+FROM maven:3.9-eclipse-temurin-21-alpine AS build
+WORKDIR /app
+COPY backend/pom.xml backend/
+COPY backend/src backend/src/
+RUN mvn -f backend/pom.xml clean package -DskipTests
+
+FROM eclipse-temurin:21-jre-alpine
+RUN mkdir -p /opt/uploads /opt/data
+COPY --from=build /app/backend/target/*.jar app.jar
+ENV SPRING_PROFILES_ACTIVE=render
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app.jar"]

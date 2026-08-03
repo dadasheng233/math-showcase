@@ -1,0 +1,55 @@
+CREATE TABLE IF NOT EXISTS user (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    nickname VARCHAR(50),
+    avatar VARCHAR(500),
+    role VARCHAR(20) DEFAULT 'USER',
+    deleted TINYINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS project (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    tags VARCHAR(500),
+    cover_image VARCHAR(500),
+    creator_id BIGINT,
+    status VARCHAR(20) DEFAULT 'ACTIVE',
+    deleted TINYINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS project_file (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    project_id BIGINT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    file_size BIGINT DEFAULT 0,
+    file_type VARCHAR(50),
+    storage_mode VARCHAR(20) DEFAULT 'local',
+    deleted TINYINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS paper (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(300) NOT NULL,
+    authors VARCHAR(200),
+    abstract_text TEXT,
+    keywords VARCHAR(500),
+    file_path VARCHAR(500),
+    file_name VARCHAR(255),
+    file_size BIGINT DEFAULT 0,
+    cover_image VARCHAR(500),
+    storage_mode VARCHAR(20) DEFAULT 'local',
+    uploader_id BIGINT,
+    status VARCHAR(20) DEFAULT 'PUBLISHED',
+    view_count INT DEFAULT 0,
+    deleted TINYINT DEFAULT 0,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
