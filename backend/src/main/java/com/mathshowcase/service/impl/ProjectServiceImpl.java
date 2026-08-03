@@ -156,4 +156,18 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         if (name.endsWith(".zip") || name.endsWith(".rar") || name.endsWith(".tar.gz")) return "archive";
         return "other";
     }
+
+    @Override
+    public void togglePublish(Long projectId) {
+        Project project = getById(projectId);
+        if (project == null) {
+            throw new RuntimeException("项目不存在");
+        }
+        if ("DEPLOYED".equals(project.getStatus())) {
+            project.setStatus("ACTIVE");
+        } else {
+            project.setStatus("DEPLOYED");
+        }
+        updateById(project);
+    }
 }

@@ -31,6 +31,10 @@ function formatSize(bytes: number): string {
   return size.toFixed(1) + ' ' + units[i]
 }
 
+function openUrl(url: string) {
+  window.open(url, '_blank')
+}
+
 async function fetchDetail() {
   loading.value = true
   try {
@@ -102,7 +106,7 @@ onMounted(async () => {
             <el-button type="primary" @click="showPdf = !showPdf">
               {{ showPdf ? '收起预览' : '在线预览' }}
             </el-button>
-            <el-button @click="() => window.open(pdfUrl, '_blank')">
+            <el-button @click="openUrl(pdfUrl)">
               <el-icon><Download /></el-icon> 下载
             </el-button>
           </div>
@@ -131,7 +135,7 @@ onMounted(async () => {
               <span class="attachment-name">{{ att.fileName }}</span>
               <span class="attachment-size">{{ formatSize(att.fileSize) }}</span>
             </div>
-            <el-button size="small" @click="() => window.open(`${apiBase}/files/uploads/${att.filePath}`, '_blank')">
+            <el-button size="small" @click="openUrl(`${apiBase}/files/uploads/${att.filePath}`)">
               <el-icon><Download /></el-icon> 下载
             </el-button>
           </div>

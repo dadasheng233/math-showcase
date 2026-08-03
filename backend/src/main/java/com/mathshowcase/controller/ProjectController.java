@@ -62,4 +62,14 @@ public class ProjectController {
             return R.error(e.getMessage());
         }
     }
+
+    @PutMapping("/{id}/publish")
+    public R<?> publish(@PathVariable Long id) {
+        try {
+            projectService.togglePublish(id);
+            return R.ok("操作成功");
+        } catch (RuntimeException e) {
+            return R.error(e.getMessage());
+        }
+    }
 }

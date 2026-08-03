@@ -13,4 +13,5 @@ public interface ProjectService extends IService<Project> {
     Map<String, Object> getProjectDetail(Long projectId);
     Map<String, Object> getProjects(int page, int size, String keyword);
     List<Map<String, Object>> getProjectFiles(Long projectId);
+    void togglePublish(Long projectId);
 }

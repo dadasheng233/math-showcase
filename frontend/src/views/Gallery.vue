@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPapers } from '@/api/paper'
 import { getApiUrl } from '@/utils'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-
-gsap.registerPlugin(ScrollTrigger)
 
 const router = useRouter()
 const papers = ref<any[]>([])
@@ -14,6 +10,11 @@ const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const keyword = ref('')
+const isPaused = ref(false)
+const hoveredCard = ref<number | null>(null)
+
+// Duplicate papers for seamless infinite scroll
+const displayPapers = computed(() => [...papers.value, ...papers.value])
 
 async function fetchPapers() {
   loading.value = true
@@ -39,29 +40,9 @@ function goDetail(id: number) {
   router.push(`/papers/${id}`)
 }
 
-function goProject(id: number) {
-  router.push(`/projects/${id}`)
-}
-
 onMounted(async () => {
   await fetchPapers()
-  await nextTick()
-  animateCards()
 })
-
-function animateCards() {
-  gsap.from('.paper-card', {
-    scrollTrigger: {
-      trigger: '.gallery-grid',
-      start: 'top 80%'
-    },
-    y: 60,
-    opacity: 0,
-    duration: 0.8,
-    stagger: 0.1,
-    ease: 'power3.out'
-  })
-}
 </script>
 
 <template>
@@ -106,45 +87,55 @@ function animateCards() {
         </div>
       </div>
 
-      <div v-loading="loading" class="gallery-grid">
+      <div v-loading="loading" class="carousel-wrapper">
         <div
-          v-for="(paper, index) in papers"
-          :key="paper.id"
-          class="paper-card"
-          :style="{ animationDelay: index * 0.05 + 's' }"
-          @click="goDetail(paper.id)"
+          class="carousel-track"
+          :class="{ paused: isPaused }"
+          @mouseenter="isPaused = true"
+          @mouseleave="isPaused = false"
         >
-          <div class="card-cover">
-            <img v-if="paper.coverImage" :src="getApiUrl(paper.coverImage)" :alt="paper.title" />
-            <div v-else class="card-cover-placeholder">
-              <el-icon :size="48"><Document /></el-icon>
+          <div
+            v-for="(paper, idx) in displayPapers"
+            :key="paper.id + '-' + idx"
+            class="paper-card"
+            :class="{ 'is-hovered': hoveredCard === paper.id && idx < papers.length }"
+            @mouseenter="hoveredCard = paper.id"
+            @mouseleave="hoveredCard = null"
+            @click="goDetail(paper.id)"
+          >
+            <div class="card-cover">
+              <img v-if="paper.coverImage" :src="getApiUrl(paper.coverImage)" :alt="paper.title" />
+              <div v-else class="card-cover-placeholder">
+                <el-icon :size="48"><Document /></el-icon>
+              </div>
+              <div class="card-overlay">
+                <span class="view-btn">查看详情</span>
+              </div>
+              <div class="card-glow"></div>
             </div>
-            <div class="card-overlay">
-              <span class="view-btn">查看详情</span>
-            </div>
-          </div>
-          <div class="card-body">
-            <h3 class="card-title">{{ paper.title }}</h3>
-            <p class="card-authors" v-if="paper.authors">{{ paper.authors }}</p>
-            <p class="card-abstract" v-if="paper.abstractText">{{ paper.abstractText.slice(0, 100) }}...</p>
-            <div class="card-tags" v-if="paper.keywords">
-              <el-tag
-                v-for="tag in paper.keywords.split(',')"
-                :key="tag"
-                size="small"
-                class="tag-item"
-              >{{ tag }}</el-tag>
-            </div>
-            <div class="card-meta">
-              <span><el-icon><View /></el-icon> {{ paper.viewCount || 0 }}</span>
-              <span>{{ new Date(paper.createTime).toLocaleDateString() }}</span>
+            <div class="card-body">
+              <h3 class="card-title">{{ paper.title }}</h3>
+              <p class="card-authors" v-if="paper.authors">{{ paper.authors }}</p>
+              <p class="card-abstract" v-if="paper.abstractText">{{ paper.abstractText.slice(0, 100) }}...</p>
+              <div class="card-tags" v-if="paper.keywords">
+                <el-tag
+                  v-for="tag in paper.keywords.split(',')"
+                  :key="tag"
+                  size="small"
+                  class="tag-item"
+                >{{ tag }}</el-tag>
+              </div>
+              <div class="card-meta">
+                <span><el-icon><View /></el-icon> {{ paper.viewCount || 0 }}</span>
+                <span>{{ new Date(paper.createTime).toLocaleDateString() }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <div v-if="papers.length < total" class="load-more">
-        <el-button :loading="loading" @click="loadMore" round>加载更多</el-button>
+        <el-button :loading="loading" @click="loadMore" round size="large">加载更多</el-button>
       </div>
 
       <div v-if="!loading && papers.length === 0" class="empty-state">
@@ -156,10 +147,9 @@ function animateCards() {
 </template>
 
 <style scoped>
-.gallery-page {
-  padding-bottom: 60px;
-}
+.gallery-page { padding-bottom: 60px; }
 
+/* Hero */
 .hero-section {
   position: relative;
   padding: 80px 40px;
@@ -167,12 +157,7 @@ function animateCards() {
   overflow: hidden;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
 }
-
-.hero-bg {
-  position: absolute;
-  inset: 0;
-}
-
+.hero-bg { position: absolute; inset: 0; }
 .hero-particle {
   position: absolute;
   width: 4px;
@@ -182,19 +167,13 @@ function animateCards() {
   animation: particleFloat linear infinite;
   opacity: 0.6;
 }
-
 @keyframes particleFloat {
   0% { transform: translateY(0) scale(1); opacity: 0; }
   20% { opacity: 0.6; }
   80% { opacity: 0.6; }
   100% { transform: translateY(-100px) scale(0); opacity: 0; }
 }
-
-.hero-content {
-  position: relative;
-  z-index: 1;
-}
-
+.hero-content { position: relative; z-index: 1; }
 .hero-title {
   font-size: 48px;
   font-weight: 800;
@@ -204,79 +183,72 @@ function animateCards() {
   background-clip: text;
   margin: 0 0 16px;
 }
-
-.hero-desc {
-  font-size: 18px;
-  color: #8892b0;
-  margin: 0 0 32px;
-}
-
-.hero-actions {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-}
-
+.hero-desc { font-size: 18px; color: #8892b0; margin: 0 0 32px; }
+.hero-actions { display: flex; justify-content: center; gap: 16px; }
 .hero-btn-outline {
   background: transparent !important;
   border: 1px solid rgba(102, 126, 234, 0.4) !important;
   color: #8892b0 !important;
 }
+.hero-btn-outline:hover { border-color: #667eea !important; color: #667eea !important; }
 
-.hero-btn-outline:hover {
-  border-color: #667eea !important;
-  color: #667eea !important;
-}
-
-.gallery-section {
-  padding: 40px;
-}
-
+/* Gallery */
+.gallery-section { padding: 40px; }
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.section-title { font-size: 24px; font-weight: 700; color: #fff; margin: 0; }
+.search-box { width: 280px; }
+
+/* ===== Auto-scrolling Carousel ===== */
+.carousel-wrapper {
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
 }
 
-.section-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #fff;
-  margin: 0;
-}
-
-.search-box {
-  width: 280px;
-}
-
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.carousel-track {
+  display: flex;
   gap: 24px;
+  width: max-content;
+  animation: scrollLeft 50s linear infinite;
+  padding: 20px 0;
 }
 
-@media (max-width: 1400px) {
-  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+.carousel-track.paused {
+  animation-play-state: paused;
 }
 
-@media (max-width: 900px) {
-  .gallery-grid { grid-template-columns: 1fr; }
+@keyframes scrollLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
+/* Cards */
 .paper-card {
+  flex-shrink: 0;
+  width: 340px;
+  position: relative;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-style: preserve-3d;
+  perspective: 1000px;
 }
 
-.paper-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(102, 126, 234, 0.3);
-  box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15);
+.paper-card.is-hovered {
+  transform: translateY(-12px) scale(1.03);
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 30px 80px rgba(102, 126, 234, 0.25), 0 0 0 1px rgba(102, 126, 234, 0.3) inset;
+  z-index: 10;
 }
 
 .card-cover {
@@ -285,13 +257,15 @@ function animateCards() {
   overflow: hidden;
   background: linear-gradient(135deg, #1a1a3e, #1a1a2e);
 }
-
 .card-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-
+.paper-card.is-hovered .card-cover img {
+  transform: scale(1.1);
+}
 .card-cover-placeholder {
   display: flex;
   align-items: center;
@@ -299,34 +273,44 @@ function animateCards() {
   height: 100%;
   color: #3a3a5e;
 }
+.card-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(102, 126, 234, 0.2), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.paper-card.is-hovered .card-glow {
+  opacity: 1;
+}
 
 .card-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  padding-bottom: 24px;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.4s ease;
 }
-
-.paper-card:hover .card-overlay {
-  opacity: 1;
-}
-
+.paper-card.is-hovered .card-overlay { opacity: 1; }
 .view-btn {
-  padding: 8px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 8px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 20px;
   color: #fff;
   font-size: 13px;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.card-body {
-  padding: 16px 20px 20px;
-}
-
+.card-body { padding: 16px 20px 20px; }
 .card-title {
   font-size: 16px;
   font-weight: 600;
@@ -336,14 +320,10 @@ function animateCards() {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  transition: color 0.3s;
 }
-
-.card-authors {
-  font-size: 13px;
-  color: #667eea;
-  margin: 0 0 8px;
-}
-
+.paper-card.is-hovered .card-title { color: #667eea; }
+.card-authors { font-size: 13px; color: #667eea; margin: 0 0 8px; }
 .card-abstract {
   font-size: 13px;
   color: #8892b0;
@@ -354,45 +334,21 @@ function animateCards() {
   overflow: hidden;
 }
 
-.card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
+.card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .tag-item {
   background: rgba(102, 126, 234, 0.1) !important;
   border-color: rgba(102, 126, 234, 0.2) !important;
   color: #667eea !important;
 }
-
 .card-meta {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
   color: #5a5a7e;
 }
+.card-meta span { display: flex; align-items: center; gap: 4px; }
 
-.card-meta span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.load-more {
-  text-align: center;
-  margin-top: 40px;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 80px 0;
-  color: #5a5a7e;
-}
-
-.empty-state p {
-  margin-top: 16px;
-  font-size: 16px;
-}
+.load-more { text-align: center; margin-top: 40px; }
+.empty-state { text-align: center; padding: 80px 0; color: #5a5a7e; }
+.empty-state p { margin-top: 16px; font-size: 16px; }
 </style>

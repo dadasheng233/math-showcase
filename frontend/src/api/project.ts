@@ -15,3 +15,7 @@ export function getProjectDetail(id: number) {
 export function uploadProjectFiles(id: number, formData: FormData) {
   return request.post(`/projects/${id}/upload`, formData)
 }
+
+export function togglePublish(id: number) {
+  return request.put(`/projects/${id}/publish`)
+}
