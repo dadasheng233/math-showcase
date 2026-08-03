@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPaperDetail } from '@/api/paper'
 import gsap from 'gsap'
@@ -8,6 +8,14 @@ const route = useRoute()
 const router = useRouter()
 const paper = ref<any>(null)
 const loading = ref(false)
+const showPdf = ref(false)
+
+const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
+
+const pdfUrl = computed(() => {
+  if (!paper.value?.filePath) return ''
+  return `${apiBase}/files/uploads/${paper.value.filePath}`
+})
 
 async function fetchDetail() {
   loading.value = true
@@ -69,10 +77,28 @@ onMounted(async () => {
 
       <div class="detail-section card" v-if="paper.fileName">
         <h3 class="section-title">论文文件</h3>
-        <div class="file-download">
-          <el-icon :size="24"><Document /></el-icon>
-          <span>{{ paper.fileName }}</span>
-          <el-tag size="small">{{ paper.storageMode === 'oss' ? '云存储' : '本地存储' }}</el-tag>
+        <div class="file-actions">
+          <div class="file-info">
+            <el-icon :size="24"><Document /></el-icon>
+            <span>{{ paper.fileName }}</span>
+            <el-tag size="small">PDF</el-tag>
+          </div>
+          <div class="file-btns">
+            <el-button type="primary" @click="showPdf = !showPdf">
+              {{ showPdf ? '收起预览' : '在线预览' }}
+            </el-button>
+            <el-button @click="() => window.open(pdfUrl, '_blank')">
+              <el-icon><Download /></el-icon> 下载
+            </el-button>
+          </div>
+        </div>
+
+        <div v-if="showPdf" class="pdf-viewer">
+          <iframe
+            :src="pdfUrl"
+            class="pdf-frame"
+            frameborder="0"
+          ></iframe>
         </div>
       </div>
 
@@ -169,13 +195,38 @@ onMounted(async () => {
   color: #667eea !important;
 }
 
-.file-download {
+.file-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 12px;
+}
+
+.file-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  background: rgba(102, 126, 234, 0.05);
-  border-radius: 10px;
   color: #ccd6f6;
+}
+
+.file-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.pdf-viewer {
+  margin-top: 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pdf-frame {
+  width: 100%;
+  height: 700px;
 }
 </style>
