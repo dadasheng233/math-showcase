@@ -9,6 +9,8 @@ import java.util.Map;
 
 public interface ProjectService extends IService<Project> {
     Project createProject(Project project);
+    Project updateProject(Long id, Project project);
+    void deleteProject(Long id);
     Map<String, Object> uploadFiles(Long projectId, MultipartFile[] files);
     Map<String, Object> getProjectDetail(Long projectId);
     Map<String, Object> getProjects(int page, int size, String keyword);

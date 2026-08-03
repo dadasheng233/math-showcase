@@ -40,6 +40,26 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
     }
 
     @Override
+    public Paper updatePaper(Long id, Paper paper) {
+        Paper existing = getById(id);
+        if (existing == null) {
+            throw new RuntimeException("论文不存在");
+        }
+        paper.setId(id);
+        updateById(paper);
+        return getById(id);
+    }
+
+    @Override
+    public void deletePaper(Long id) {
+        Paper paper = getById(id);
+        if (paper == null) {
+            throw new RuntimeException("论文不存在");
+        }
+        removeById(id);
+    }
+
+    @Override
     @Transactional
     public Paper uploadPaperFile(Long paperId, MultipartFile file) {
         Paper paper = getById(paperId);

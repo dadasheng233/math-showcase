@@ -1,14 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getProjectDetail, togglePublish } from '@/api/project'
+import { getProjectDetail, updateProject, deleteProject, togglePublish } from '@/api/project'
 import { getApiUrl } from '@/utils'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
 const project = ref<any>(null)
 const loading = ref(false)
+const isEditing = ref(false)
+
+const editForm = reactive({
+  title: '',
+  description: '',
+  tags: ''
+})
 
 async function fetchDetail() {
   loading.value = true
@@ -72,6 +79,57 @@ async function doTogglePublish() {
   }
 }
 
+function startEdit() {
+  if (!project.value) return
+  editForm.title = project.value.title || ''
+  editForm.description = project.value.description || ''
+  editForm.tags = project.value.tags || ''
+  isEditing.value = true
+}
+
+function cancelEdit() {
+  isEditing.value = false
+}
+
+async function saveEdit() {
+  if (!editForm.title.trim()) {
+    ElMessage.warning('请输入项目标题')
+    return
+  }
+  loading.value = true
+  try {
+    await updateProject(project.value.id, {
+      title: editForm.title.trim(),
+      description: editForm.description.trim(),
+      tags: editForm.tags.trim()
+    })
+    await fetchDetail()
+    isEditing.value = false
+    ElMessage.success('修改已保存')
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleDelete() {
+  try {
+    await ElMessageBox.confirm('确定要删除这个项目吗？所有相关文件也将被删除，此操作不可恢复。', '确认删除', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await deleteProject(project.value.id)
+    ElMessage.success('已删除')
+    router.push('/projects')
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      ElMessage.error(err.message || '删除失败')
+    }
+  }
+}
+
 onMounted(() => fetchDetail())
 </script>
 
@@ -81,9 +139,37 @@ onMounted(() => fetchDetail())
       <el-button text @click="router.back()">
         <el-icon><ArrowLeft /></el-icon> 返回
       </el-button>
+      <div v-if="project && !isEditing" class="top-actions">
+        <el-button @click="startEdit">
+          <el-icon><Edit /></el-icon> 编辑
+        </el-button>
+        <el-button type="danger" @click="handleDelete">
+          <el-icon><Delete /></el-icon> 删除
+        </el-button>
+      </div>
     </div>
 
-    <div v-if="project" class="detail-content">
+    <!-- Edit Mode -->
+    <div v-if="isEditing" class="edit-form card">
+      <h3 class="section-title">编辑项目信息</h3>
+      <el-form label-position="top" size="large">
+        <el-form-item label="项目标题" required>
+          <el-input v-model="editForm.title" placeholder="项目标题" maxlength="100" show-word-limit />
+        </el-form-item>
+        <el-form-item label="项目描述">
+          <el-input v-model="editForm.description" type="textarea" :rows="5" placeholder="描述项目背景、方法和结论..." maxlength="2000" show-word-limit />
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-input v-model="editForm.tags" placeholder="逗号分隔，例如：国赛,优化模型,Python" />
+        </el-form-item>
+        <div class="form-actions">
+          <el-button @click="cancelEdit">取消</el-button>
+          <el-button type="primary" :loading="loading" @click="saveEdit">保存修改</el-button>
+        </div>
+      </el-form>
+    </div>
+
+    <div v-if="project && !isEditing" class="detail-content">
       <div class="detail-header">
         <div>
           <h2 class="page-title">{{ project.title }}</h2>
@@ -136,6 +222,36 @@ onMounted(() => fetchDetail())
 <style scoped>
 .detail-content {
   max-width: 900px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.top-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-form {
+  max-width: 700px;
+  margin-top: 24px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #667eea;
+  margin: 0 0 16px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
 }
 
 .detail-header {

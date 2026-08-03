@@ -33,6 +33,26 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     }
 
     @Override
+    public Project updateProject(Long id, Project project) {
+        Project existing = getById(id);
+        if (existing == null) {
+            throw new RuntimeException("项目不存在");
+        }
+        project.setId(id);
+        updateById(project);
+        return getById(id);
+    }
+
+    @Override
+    public void deleteProject(Long id) {
+        Project project = getById(id);
+        if (project == null) {
+            throw new RuntimeException("项目不存在");
+        }
+        removeById(id);
+    }
+
+    @Override
     @Transactional
     public Map<String, Object> uploadFiles(Long projectId, MultipartFile[] files) {
         Project project = getById(projectId);

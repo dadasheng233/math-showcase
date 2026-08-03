@@ -4,6 +4,14 @@ export function createProject(data: { title: string; description: string; tags: 
   return request.post('/projects', data)
 }
 
+export function updateProject(id: number, data: { title: string; description: string; tags: string }) {
+  return request.put(`/projects/${id}`, data)
+}
+
+export function deleteProject(id: number) {
+  return request.delete(`/projects/${id}`)
+}
+
 export function getProjects(params: { page: number; size: number; keyword?: string }) {
   return request.get('/projects', { params })
 }

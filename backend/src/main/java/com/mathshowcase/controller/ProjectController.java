@@ -72,4 +72,27 @@ public class ProjectController {
             return R.error(e.getMessage());
         }
     }
+
+    @PutMapping("/{id}")
+    public R<?> update(@PathVariable Long id, @RequestBody ProjectDTO dto) {
+        try {
+            Project project = new Project();
+            project.setTitle(dto.getTitle());
+            project.setDescription(dto.getDescription());
+            project.setTags(dto.getTags());
+            return R.ok(projectService.updateProject(id, project));
+        } catch (RuntimeException e) {
+            return R.error(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public R<?> delete(@PathVariable Long id) {
+        try {
+            projectService.deleteProject(id);
+            return R.ok("删除成功");
+        } catch (RuntimeException e) {
+            return R.error(e.getMessage());
+        }
+    }
 }

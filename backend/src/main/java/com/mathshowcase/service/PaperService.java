@@ -10,6 +10,8 @@ import java.util.Map;
 
 public interface PaperService extends IService<Paper> {
     Paper createPaper(Paper paper);
+    Paper updatePaper(Long id, Paper paper);
+    void deletePaper(Long id);
     Paper uploadPaperFile(Long paperId, MultipartFile file);
     Paper uploadCover(Long paperId, MultipartFile file);
     List<PaperAttachment> uploadAttachments(Long paperId, MultipartFile[] files);

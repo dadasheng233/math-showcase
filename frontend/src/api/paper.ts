@@ -4,6 +4,14 @@ export function createPaper(data: { title: string; authors: string; abstractText
   return request.post('/papers', data)
 }
 
+export function updatePaper(id: number, data: { title: string; authors: string; abstractText: string; keywords: string }) {
+  return request.put(`/papers/${id}`, data)
+}
+
+export function deletePaper(id: number) {
+  return request.delete(`/papers/${id}`)
+}
+
 export function uploadPaperFile(id: number, formData: FormData) {
   return request.post(`/papers/${id}/upload`, formData)
 }

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, nextTick, computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getPaperDetail } from '@/api/paper'
+import { getPaperDetail, updatePaper, deletePaper } from '@/api/paper'
 import { getApiUrl } from '@/utils'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import gsap from 'gsap'
 
 const route = useRoute()
@@ -11,6 +12,14 @@ const paper = ref<any>(null)
 const attachments = ref<any[]>([])
 const loading = ref(false)
 const showPdf = ref(false)
+const isEditing = ref(false)
+
+const editForm = reactive({
+  title: '',
+  authors: '',
+  abstractText: '',
+  keywords: ''
+})
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -46,6 +55,59 @@ async function fetchDetail() {
   }
 }
 
+function startEdit() {
+  if (!paper.value) return
+  editForm.title = paper.value.title || ''
+  editForm.authors = paper.value.authors || ''
+  editForm.abstractText = paper.value.abstractText || ''
+  editForm.keywords = paper.value.keywords || ''
+  isEditing.value = true
+}
+
+function cancelEdit() {
+  isEditing.value = false
+}
+
+async function saveEdit() {
+  if (!editForm.title.trim()) {
+    ElMessage.warning('请输入论文标题')
+    return
+  }
+  loading.value = true
+  try {
+    await updatePaper(paper.value.id, {
+      title: editForm.title.trim(),
+      authors: editForm.authors.trim(),
+      abstractText: editForm.abstractText.trim(),
+      keywords: editForm.keywords.trim()
+    })
+    await fetchDetail()
+    isEditing.value = false
+    ElMessage.success('修改已保存')
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleDelete() {
+  try {
+    await ElMessageBox.confirm('确定要删除这篇论文吗？此操作不可恢复。', '确认删除', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await deletePaper(paper.value.id)
+    ElMessage.success('已删除')
+    router.push('/papers')
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      ElMessage.error(err.message || '删除失败')
+    }
+  }
+}
+
 onMounted(async () => {
   await fetchDetail()
   await nextTick()
@@ -65,9 +127,40 @@ onMounted(async () => {
       <el-button text @click="router.back()">
         <el-icon><ArrowLeft /></el-icon> 返回
       </el-button>
+      <div v-if="paper && !isEditing" class="header-actions">
+        <el-button @click="startEdit">
+          <el-icon><Edit /></el-icon> 编辑
+        </el-button>
+        <el-button type="danger" @click="handleDelete">
+          <el-icon><Delete /></el-icon> 删除
+        </el-button>
+      </div>
     </div>
 
-    <div v-if="paper" class="paper-detail">
+    <!-- Edit Mode -->
+    <div v-if="isEditing" class="edit-form card">
+      <h3 class="section-title">编辑论文信息</h3>
+      <el-form label-position="top" size="large">
+        <el-form-item label="标题" required>
+          <el-input v-model="editForm.title" placeholder="论文标题" maxlength="200" show-word-limit />
+        </el-form-item>
+        <el-form-item label="作者">
+          <el-input v-model="editForm.authors" placeholder="作者，逗号分隔" />
+        </el-form-item>
+        <el-form-item label="摘要">
+          <el-input v-model="editForm.abstractText" type="textarea" :rows="6" placeholder="论文摘要" maxlength="5000" show-word-limit />
+        </el-form-item>
+        <el-form-item label="关键词">
+          <el-input v-model="editForm.keywords" placeholder="关键词，逗号分隔" />
+        </el-form-item>
+        <div class="form-actions">
+          <el-button @click="cancelEdit">取消</el-button>
+          <el-button type="primary" :loading="loading" @click="saveEdit">保存修改</el-button>
+        </div>
+      </el-form>
+    </div>
+
+    <div v-if="paper && !isEditing" class="paper-detail">
       <div class="detail-section paper-hero">
         <div class="hero-gradient"></div>
         <h1 class="paper-title">{{ paper.title }}</h1>
@@ -148,6 +241,29 @@ onMounted(async () => {
 <style scoped>
 .paper-detail {
   max-width: 900px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-form {
+  max-width: 700px;
+  margin-top: 24px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
 }
 
 .paper-hero {

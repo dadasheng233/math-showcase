@@ -93,4 +93,29 @@ public class PaperController {
             return R.error(e.getMessage());
         }
     }
+
+    @PutMapping("/{id}")
+    public R<?> update(@PathVariable Long id, @RequestBody PaperDTO dto) {
+        try {
+            Paper paper = new Paper();
+            paper.setTitle(dto.getTitle());
+            paper.setAuthors(dto.getAuthors());
+            paper.setAbstractText(dto.getAbstractText());
+            paper.setKeywords(dto.getKeywords());
+            paper.setCoverImage(dto.getCoverImage());
+            return R.ok(paperService.updatePaper(id, paper));
+        } catch (RuntimeException e) {
+            return R.error(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public R<?> delete(@PathVariable Long id) {
+        try {
+            paperService.deletePaper(id);
+            return R.ok("删除成功");
+        } catch (RuntimeException e) {
+            return R.error(e.getMessage());
+        }
+    }
 }
